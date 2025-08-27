@@ -1,103 +1,120 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import useGetAllUsers from "@/Hooks/useGetAllUsers";
+import FormAddUser from "./Components/FormAddUser";
+import useDeleteUser from "@/Hooks/useDeleteUser";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import useEditUser from "@/Hooks/useEditUser";
+import { FcLikePlaceholder, FcLike } from "react-icons/fc";
+import { PiSpinnerGapThin } from "react-icons/pi";
+
+type TUser = {
+  id: number;
+  name: string;
+  family: string;
+  age: number;
+  liked: boolean;
+};
+
+export default function page() {
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { data: list, isLoading: loadingUsers } = useGetAllUsers();
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const qc = useQueryClient();
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { mutate, isPending: loadingDelete } = useDeleteUser();
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const [userDel, setUserDel] = useState(null as number | null);
+  function handleDelete(id: number) {
+    return () => {
+      setUserDel(id);
+      mutate(id, {
+        onSuccess: () => {
+          qc.invalidateQueries({ queryKey: ["users"] });
+        },
+      });
+    };
+  }
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const [userEdited, setUserEdited] = useState<TUser | null>(null);
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { mutate: edit, isPending: loadingEdit } = useEditUser();
+  function handelLike(user: TUser) {
+    return () => {
+      setUserDel(user.id);
+      edit(
+        { data: { liked: !user.liked }, id: user.id },
+        {
+          onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ["users"] });
+          },
+        }
+      );
+    };
+  }
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div
+      style={{ padding: 24 }}
+      className="w-full h-full flex flex-col justify-center items-center"
+    >
+      <h1>Users CRUD</h1>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      <FormAddUser
+        userEdited={userEdited}
+        onclose={() => setUserEdited(null)}
+      />
+
+      {loadingUsers ? (
+  <PiSpinnerGapThin className="animate-spin text-4xl" />
+) : list && list.length === 0 ? (
+  <p> There is no user Please add one</p>
+) : (
+      <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {list?.map((user: TUser, index : number) => (
+          <li
+            key={user.id}
+            style={{ border: "1px solid #ccc", padding: 12, borderRadius: 8 }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+            <div className="flex justify-between items-center">
+              <div className="font-bold bg-sky-500 w-8 h-8 flex justify-center items-center rounded">{index+1}</div> {user.name} {user.family} | age: {user.age}
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <button
+                disabled={userEdited !== null}
+                onClick={handelLike(user)}
+                className="py-2 px-4 rounded hover:scale-115 disabled:hover:scale-100 cursor-pointer transition-all duration-150"
+              >
+                {userDel !== null && userDel === user.id && loadingEdit ? (
+                  <PiSpinnerGapThin className="animate-spin text-2xl" />
+                ) : user.liked ? (
+                  <FcLike className="text-2xl" />
+                ) : (
+                  <FcLikePlaceholder className="text-2xl" />
+                )}
+              </button>
+              <button
+                disabled={userEdited !== null}
+                onClick={handleDelete(user.id)}
+                className="bg-red-500 py-2 px-4 rounded hover:bg-red-600 cursor-pointer transition-all duration-150 disabled:bg-gray-500 disabled:cursor-not-allowed"
+              >
+                {userDel !== null && userDel === user.id && loadingDelete
+                  ? "deleting..."
+                  : "delete"}
+              </button>
+              <button
+                onClick={() => setUserEdited(user)}
+                className="bg-orange-500 py-2 px-4 rounded hover:bg-orange-600 cursor-pointer transition-all duration-150"
+              >
+                edit
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>)}
     </div>
   );
 }
